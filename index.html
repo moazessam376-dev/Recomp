@@ -32,13 +32,17 @@
   --pad:18px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;height:100%}
 body{
   background:var(--base);color:var(--ink);font-family:var(--sans);
   font-size:15px;line-height:1.45;
-  padding-bottom:calc(60px + env(safe-area-inset-bottom));
   -webkit-font-smoothing:antialiased;
-  overscroll-behavior-y:none;
+  /* A fixed nav over a scrolling document drifts upward on iOS rubber-band
+     and leaves a strip of page background under it - and only on whichever
+     tab you last overscrolled. The shell is a fixed-height column with one
+     internal scroller instead, so the bar cannot move. */
+  display:flex;flex-direction:column;
+  height:100%;height:100dvh;overflow:hidden;
 }
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,textarea{font:inherit;color:inherit}
@@ -54,10 +58,15 @@ h2{font-size:16px;font-weight:650;letter-spacing:-.01em;margin:0}
 
 /* ---------- shell ---------- */
 header{
+  flex:0 0 auto;
   padding:calc(env(safe-area-inset-top) + 16px) var(--pad) 0;
 }
 .headrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
-main{padding:0 var(--pad)}
+main{
+  flex:1 1 auto;min-height:0;overflow-y:auto;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:0 var(--pad) 18px;
+}
 .view{display:none;padding-top:18px}
 .view.on{display:block}
 
@@ -117,6 +126,12 @@ main{padding:0 var(--pad)}
 /* ---------- exercises ---------- */
 .ex{border-bottom:1px solid var(--line-soft)}
 .ex:last-child{border-bottom:none}
+.ss{border-left:2px solid var(--brass-dim);padding-left:11px;border-bottom:1px solid var(--line-soft)}
+.ss:last-child{border-bottom:none}
+.ss-tag{
+  font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--brass);padding:11px 0 0;
+}
 .ex-head{display:flex;align-items:center;gap:12px;padding:13px 0;width:100%;text-align:left}
 .ex-idx{
   font-family:var(--mono);font-size:10px;color:var(--faint);width:16px;flex:0 0 16px;
@@ -167,7 +182,10 @@ main{padding:0 var(--pad)}
 
 /* ---------- body log ---------- */
 .entry{display:flex;gap:9px;margin-bottom:10px}
-.field{flex:1}
+/* min-width:0, or the flex item will not shrink below the input's default
+   intrinsic width and the second field hangs off the edge of the card. */
+.field{flex:1;min-width:0}
+.field .inp{width:100%}
 .field label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
 .btn{
   width:100%;background:var(--brass);color:#16181A;border-radius:10px;padding:13px;
@@ -195,7 +213,7 @@ svg.spark{width:100%;height:88px;display:block;margin:6px 0 2px;overflow:visible
 
 /* ---------- tabs ---------- */
 nav{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  flex:0 0 auto;position:relative;z-index:20;
   background:rgba(18,20,22,.93);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border-top:1px solid var(--line-soft);
   /* Only the home-indicator inset sits below the labels. Anything the app adds
@@ -211,7 +229,7 @@ nav{
 
 .toast{
   position:fixed;left:50%;transform:translateX(-50%) translateY(14px);
-  bottom:calc(84px + env(safe-area-inset-bottom));
+  bottom:calc(58px + env(safe-area-inset-bottom));
   background:var(--ink);color:var(--base);font-family:var(--mono);font-size:11px;
   letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:20px;
   opacity:0;pointer-events:none;transition:.25s;z-index:40;
@@ -322,8 +340,9 @@ nav{
     <div class="plan-sec">
       <h3>Training rules</h3>
       <div class="plan-row"><span>Stop short of failure</span><b>1–2 RIR</b></div>
-      <div class="plan-row"><span>Rest · first 3 lifts</span><b>2 min</b></div>
-      <div class="plan-row"><span>Rest · rest of session</span><b>60–90 s</b></div>
+      <div class="plan-row"><span>Rest · opening compound</span><b>2 min</b></div>
+      <div class="plan-row"><span>Between a superset pair</span><b>~15 s</b></div>
+      <div class="plan-row"><span>After a superset pair</span><b>90 s</b></div>
       <div class="plan-row"><span>Add weight when top reps hit</span><b>+2.5 kg</b></div>
       <div class="plan-row"><span>Neck load</span><b>Week 3+</b></div>
       <div class="plan-row"><span>Incline walk</span><b>3–4 × 35 min</b></div>
@@ -390,23 +409,51 @@ const store={
 };
 
 /* ============ program ============ */
+/* Every exercise carries a stable id. Sets are stored against the id, never a
+   position, so the program can be reordered or regrouped without a logged set
+   landing on a different lift. `ss` groups consecutive items into a superset.
+   The heavy compound that opens each day is deliberately left ungrouped -
+   progression depends on it being fresh, and that is the one place where a
+   saved minute costs you reps. */
 const PROGRAM={
   A:{name:'Squat focus',ex:[
-    ['Smith squat','3 × 8',3],['Chest-supported row','3 × 10',3],
-    ['Incline dumbbell press','3 × 8–10',3],['Seated leg curl','3 × 10',3],
-    ['Lateral raise','2 × 15',2],['Neck extension','2 × 15',2],
-    ['Wrist curl + reverse','2 × 15 each',2],['Lying leg raise','3 × 12–15',3]]},
+    {id:'smith-squat',      n:'Smith squat',            p:'3 × 8',         s:3},
+    {id:'cs-row',           n:'Chest-supported row',    p:'3 × 10',        s:3, ss:'a1'},
+    {id:'incline-db-press', n:'Incline dumbbell press', p:'3 × 8–10', s:3, ss:'a1'},
+    {id:'seated-leg-curl',  n:'Seated leg curl',        p:'3 × 10',        s:3, ss:'a2'},
+    {id:'lying-leg-raise',  n:'Lying leg raise',        p:'3 × 12–15',s:3, ss:'a2'},
+    {id:'lateral-raise',    n:'Lateral raise',          p:'2 × 15',        s:2, ss:'a3'},
+    {id:'neck-extension',   n:'Neck extension',         p:'2 × 15',        s:2, ss:'a3'},
+    {id:'wrist-curl',       n:'Wrist curl + reverse',   p:'2 × 15 each',   s:2}]},
   B:{name:'Hinge focus',ex:[
-    ['Romanian deadlift','3 × 8',3],['Wide-grip lat pulldown','3 × 10',3],
-    ['Seated shoulder press','3 × 8–10',3],['Leg press','3 × 10',3],
-    ['Hammer curl','2 × 12',2],['Neck flexion','2 × 15',2],
-    ['Farmer\u2019s carry','3 × 40 m',3],['Cable crunch','3 × 12',3]]},
+    {id:'rdl',              n:'Romanian deadlift',      p:'3 × 8',         s:3},
+    {id:'lat-pulldown',     n:'Wide-grip lat pulldown', p:'3 × 10',        s:3, ss:'b1'},
+    {id:'shoulder-press',   n:'Seated shoulder press',  p:'3 × 8–10', s:3, ss:'b1'},
+    {id:'leg-press',        n:'Leg press',              p:'3 × 10',        s:3, ss:'b2'},
+    {id:'cable-crunch',     n:'Cable crunch',           p:'3 × 12',        s:3, ss:'b2'},
+    {id:'hammer-curl',      n:'Hammer curl',            p:'2 × 12',        s:2, ss:'b3'},
+    {id:'neck-flexion',     n:'Neck flexion',           p:'2 × 15',        s:2, ss:'b3'},
+    {id:'farmers-carry',    n:'Farmer’s carry',    p:'3 × 40 m',      s:3}]},
   C:{name:'Posterior + arms',ex:[
-    ['Back extension','3 × 12',3],['Hammer Strength incline press','3 × 8',3],
-    ['Single-arm lat row','3 × 10',3],['Bulgarian split squat','3 × 10 / leg',3],
-    ['Rear delt flye','3 × 12',3],['Cable pushdown','2 × 12',2],
-    ['Neck side flexion','2 × 12 / side',2],['Reverse barbell curl','2 × 15',2],
-    ['Cable Pallof press','3 × 12 / side',3]]}
+    {id:'back-extension',   n:'Back extension',         p:'3 × 12',        s:3, ss:'c1'},
+    {id:'hs-incline-press', n:'Hammer Strength incline press', p:'3 × 8',  s:3, ss:'c1'},
+    {id:'sa-lat-row',       n:'Single-arm lat row',     p:'3 × 10',        s:3, ss:'c2'},
+    {id:'bulgarian-split',  n:'Bulgarian split squat',  p:'3 × 10 / leg',  s:3, ss:'c2'},
+    {id:'rear-delt-flye',   n:'Rear delt flye',         p:'3 × 12',        s:3, ss:'c3'},
+    {id:'pallof-press',     n:'Cable Pallof press',     p:'3 × 12 / side', s:3, ss:'c3'},
+    {id:'cable-pushdown',   n:'Cable pushdown',         p:'2 × 12',        s:2, ss:'c4'},
+    {id:'reverse-curl',     n:'Reverse barbell curl',   p:'2 × 15',        s:2, ss:'c4'},
+    {id:'neck-side-flexion',n:'Neck side flexion',      p:'2 × 12 / side', s:2}]}
+};
+/* The order sets were stored against before ids existed. An old log is mapped
+   through this onto the right exercise rather than the same position. */
+const LEGACY_ORDER={
+  A:['smith-squat','cs-row','incline-db-press','seated-leg-curl','lateral-raise',
+     'neck-extension','wrist-curl','lying-leg-raise'],
+  B:['rdl','lat-pulldown','shoulder-press','leg-press','hammer-curl','neck-flexion',
+     'farmers-carry','cable-crunch'],
+  C:['back-extension','hs-incline-press','sa-lat-row','bulgarian-split','rear-delt-flye',
+     'cable-pushdown','neck-side-flexion','reverse-curl','pallof-press']
 };
 const MEALS=[
   {id:'m1',t:'Breakfast',k:550,p:45,o:['4 whole eggs + 3 whites, 2 slices whole wheat toast, 1 banana','150 g prepped chicken + 2 eggs + 1 slice toast','50 g oats in water, 1 scoop whey, 1 tbsp peanut butter']},
@@ -438,6 +485,21 @@ function migrate(d){
     if(k.indexOf('|')>-1){out[k]=v;continue}          // already migrated
     out[wkey(k,v.day||'A')]={day:v.day||'A',date:k,e:v.e||{}};
     didMigrate=true;
+  }
+  /* Sets used to be stored against the exercise's position within the day. The
+     program is now reordered into supersets, so a positional log would read
+     back against the wrong lift - map it through the old order onto ids. */
+  for(const k in out){
+    const w=out[k],e=w.e||{},order=LEGACY_ORDER[w.day]||[];
+    const fixed={};let moved=false;
+    for(const slot in e){
+      if(/^\d+$/.test(slot)){
+        const id=order[+slot];
+        if(id)fixed[id]=e[slot];
+        moved=true;
+      }else fixed[slot]=e[slot];
+    }
+    if(moved){w.e=fixed;didMigrate=true}
   }
   d.workouts=out;
   return d;
@@ -505,10 +567,10 @@ function wo(day){
   if(!S.workouts[k])S.workouts[k]={day:d,date:today,e:{}};
   return S.workouts[k];
 }
-function lastFor(day,i){
+function lastFor(day,id){
   const prev=sessions().filter(w=>w.day===day&&w.key!==wkey(today,day));
   for(let j=prev.length-1;j>=0;j--){
-    const s=(prev[j].e||{})[i];
+    const s=(prev[j].e||{})[id];
     if(s&&s.some(x=>x&&x.w))return s;
   }
   return null;
@@ -519,50 +581,67 @@ function renderEx(){
      the day just tapped, and the set would be written to the wrong session. */
   const day=selDay;
   const cur=(S.workouts[wkey(today,day)]||{}).e||{};
-  document.getElementById('exlist').innerHTML=PROGRAM[day].ex.map(([n,pr,sets],i)=>{
-    const done=(cur[i]||[]).filter(x=>x&&x.w).length;
-    const L=lastFor(day,i);
-    const lastTxt=L?'Last · '+L.filter(x=>x&&x.w).map(x=>x.w+'×'+x.r).join('   '):'No history yet — set your baseline';
-    return `<div class="ex" data-i="${i}">
-      <button class="ex-head"><span class="ex-idx num">${String(i+1).padStart(2,'0')}</span>
-      <span class="ex-name">${n}<em>${pr}</em></span>
-      <span class="ex-state${done===sets?' done':''}">${done}/${sets}</span></button>
+  const list=PROGRAM[day].ex;
+  const byId={};list.forEach(x=>{byId[x.id]=x});
+  let num=0;
+  const item=x=>{
+    num++;
+    const done=(cur[x.id]||[]).filter(v=>v&&v.w).length;
+    const L=lastFor(day,x.id);
+    const lastTxt=L?'Last · '+L.filter(v=>v&&v.w).map(v=>v.w+'×'+v.r).join('   '):'No history yet — set your baseline';
+    return `<div class="ex" data-id="${x.id}">
+      <button class="ex-head"><span class="ex-idx num">${String(num).padStart(2,'0')}</span>
+      <span class="ex-name">${x.n}<em>${x.p}</em></span>
+      <span class="ex-state${done===x.s?' done':''}">${done}/${x.s}</span></button>
       <div class="sets"><div class="last">${lastTxt}</div>
-      ${Array.from({length:sets},(_,s)=>{
-        const v=(cur[i]||[])[s]||{};
+      ${Array.from({length:x.s},(_,s)=>{
+        const v=(cur[x.id]||[])[s]||{};
         return `<div class="set"><span class="set-n">${s+1}</span>
-        <input class="inp${v.w?' filled':''}" inputmode="decimal" placeholder="kg" data-i="${i}" data-s="${s}" data-f="w" value="${v.w||''}">
+        <input class="inp${v.w?' filled':''}" inputmode="decimal" placeholder="kg" data-id="${x.id}" data-s="${s}" data-f="w" value="${v.w||''}">
         <span class="set-x">×</span>
-        <input class="inp${v.r?' filled':''}" inputmode="numeric" placeholder="reps" data-i="${i}" data-s="${s}" data-f="r" value="${v.r||''}">
+        <input class="inp${v.r?' filled':''}" inputmode="numeric" placeholder="reps" data-id="${x.id}" data-s="${s}" data-f="r" value="${v.r||''}">
         </div>`}).join('')}
-      <button class="repeat" data-r="${i}">Repeat last</button></div></div>`}).join('');
+      <button class="repeat" data-r="${x.id}">Repeat last</button></div></div>`;
+  };
+  let html='',i=0;
+  while(i<list.length){
+    const g=list[i].ss;
+    if(g){
+      const grp=[];
+      while(i<list.length&&list[i].ss===g){grp.push(list[i]);i++}
+      html+='<div class="ss"><div class="ss-tag">Superset · alternate, rest after the pair</div>'
+           +grp.map(item).join('')+'</div>';
+    }else{html+=item(list[i]);i++}
+  }
+  document.getElementById('exlist').innerHTML=html;
 
   document.querySelectorAll('.ex-head').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
   document.querySelectorAll('.sets .inp').forEach(inp=>inp.onchange=e=>{
-    const{i,s,f}=e.target.dataset,W=wo(day);
-    W.e[i]=W.e[i]||[];W.e[i][s]=W.e[i][s]||{};
-    W.e[i][s][f]=e.target.value.trim();
+    const{id,s,f}=e.target.dataset,W=wo(day);
+    W.e[id]=W.e[id]||[];W.e[id][s]=W.e[id][s]||{};
+    W.e[id][s][f]=e.target.value.trim();
     e.target.classList.toggle('filled',!!e.target.value.trim());
     const st=e.target.closest('.ex').querySelector('.ex-state');
-    const n=W.e[i].filter(x=>x&&x.w).length,tot=PROGRAM[day].ex[i][2];
+    const n=W.e[id].filter(v=>v&&v.w).length,tot=byId[id].s;
     st.textContent=n+'/'+tot;st.classList.toggle('done',n===tot);
     persist();renderStreak();
   });
   document.querySelectorAll('.repeat').forEach(b=>b.onclick=()=>{
-    const i=b.dataset.r,L=lastFor(day,i);
+    const id=b.dataset.r,L=lastFor(day,id);
     if(!L){toast('Nothing to repeat');return}
-    const W=wo(day);W.e[i]=JSON.parse(JSON.stringify(L));persist();
-    const open=document.querySelector('.ex[data-i="'+i+'"]').classList.contains('open');
-    renderEx();if(open)document.querySelector('.ex[data-i="'+i+'"]').classList.add('open');
+    const W=wo(day);W.e[id]=JSON.parse(JSON.stringify(L));persist();
+    const sel='.ex[data-id="'+id+'"]';
+    const open=document.querySelector(sel).classList.contains('open');
+    renderEx();if(open)document.querySelector(sel).classList.add('open');
     toast('Filled from last session');
   });
 }
 document.getElementById('repeatAll').onclick=()=>{
   const day=selDay,fills=[];
-  PROGRAM[day].ex.forEach((_,i)=>{const L=lastFor(day,i);if(L)fills.push([i,L])});
+  PROGRAM[day].ex.forEach(x=>{const L=lastFor(day,x.id);if(L)fills.push([x.id,L])});
   if(!fills.length){toast('No history for day '+day);return}
   const W=wo(day);                       // only create the session once there
-  fills.forEach(([i,L])=>{W.e[i]=JSON.parse(JSON.stringify(L))});  // is data
+  fills.forEach(([id,L])=>{W.e[id]=JSON.parse(JSON.stringify(L))});  // is data
   persist();renderEx();renderStreak();toast(fills.length+' exercises filled');
 };
 
@@ -723,7 +802,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');document.getElementById('v-'+b.dataset.v).classList.add('on');
-  window.scrollTo(0,0);
+  document.querySelector('main').scrollTop=0;   // main scrolls now, not the page
 });
 /* ============ offline ============ */
 if('serviceWorker' in navigator){

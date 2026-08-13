@@ -1,7 +1,7 @@
 # Recomp Plan — 3-Day Full Body + Meal Prep Nutrition
 
 **Bodyweight:** ~96 kg · **Goal:** lose fat, gain muscle, hold weight roughly stable
-**Training:** 3 lifting days/week · **Sessions:** 50–60 min
+**Training:** 3 lifting days/week · **Sessions:** 33–38 min, supersetted
 
 ---
 
@@ -21,53 +21,76 @@ Run **A → B → C**, one session per day, with at least one rest day between. 
 
 - **Warm-up:** 5 min incline walk, then 2 light ramp sets on the first exercise only.
 - **Reps in reserve:** stop 1–2 reps short of failure on everything except the last set of isolation work. Not every set to failure.
-- **Rest:** 2 min on the first three exercises, 60–90 s on the rest.
+- **Rest:** 2 min after the opening compound. Inside a superset, move straight to the second exercise (~15 s, just the walk). Rest 90 s after the pair, then go again.
 - **Progression:** when you hit the top of the rep range on all sets, add 2.5 kg next session. Log every set.
 - **Neck:** first two weeks bodyweight only, slow, no jerking. Add load after that.
+
+### How the supersets are chosen
+
+A superset only saves time if the second exercise doesn't eat into the first. Two rules decide every pairing here:
+
+1. **The opening compound is never paired.** Smith squat, RDL — these are where progression actually comes from, and they need a full 2 min. Buying four minutes by fatiguing them is a bad trade.
+2. **Paired exercises don't compete.** Either opposite actions (push against pull, triceps against biceps), or unrelated regions (hamstrings against abs, quads against neck). Nothing is paired where the first would leave the second short — no two pressing movements, no two lower-body compounds.
+
+Set up both stations before you start a pair. If the gym is busy and you can't hold two, run them as straight sets — you lose the time saving, not the training effect.
 
 ---
 
 ### Day A — Squat focus
 
-| # | Exercise | Sets × Reps |
-|---|---|---|
-| 1 | Smith squat (or goblet squat) | 3 × 8 |
-| 2 | Chest-supported row | 3 × 10 |
-| 3 | Incline dumbbell press | 3 × 8–10 |
-| 4 | Seated leg curl | 3 × 10 |
-| 5 | Lateral raise | 2 × 15 |
-| 6 | Neck extension (bodyweight → plate on forehead, lying) | 2 × 15 |
-| 7 | Wrist curl + reverse wrist curl (superset) | 2 × 15 each |
-| 8 | Lying leg raise (flat bench, hands gripping behind head) | 3 × 12–15 |
+| # | Exercise | Sets × Reps | |
+|---|---|---|---|
+| 1 | Smith squat (or goblet squat) | 3 × 8 | straight, 2 min |
+| 2 | Chest-supported row | 3 × 10 | **superset** |
+| 3 | Incline dumbbell press | 3 × 8–10 | ↑ pull against push |
+| 4 | Seated leg curl | 3 × 10 | **superset** |
+| 5 | Lying leg raise (flat bench, hands gripping behind head) | 3 × 12–15 | ↑ hamstrings against abs |
+| 6 | Lateral raise | 2 × 15 | **superset** |
+| 7 | Neck extension (bodyweight → plate on forehead, lying) | 2 × 15 | ↑ unrelated |
+| 8 | Wrist curl + reverse wrist curl | 2 × 15 each | already a superset |
 
 **Progressing the lying leg raise:** knees bent → legs straight → feet on a decline bench → light ankle weights. Lower slowly and don't let your lower back arch off the bench — that's the cue that you've gone past your current range.
 
 ### Day B — Hinge focus
 
-| # | Exercise | Sets × Reps |
-|---|---|---|
-| 1 | Romanian deadlift (barbell or dumbbell) | 3 × 8 |
-| 2 | Wide-grip lat pulldown | 3 × 10 |
-| 3 | Seated shoulder press | 3 × 8–10 |
-| 4 | Leg press | 3 × 10 |
-| 5 | Hammer curl | 2 × 12 |
-| 6 | Neck flexion (lying face-up, chin to chest) | 2 × 15 |
-| 7 | Farmer's carry (heavy dumbbells) | 3 × 40 m |
-| 8 | Cable crunch | 3 × 12 |
+| # | Exercise | Sets × Reps | |
+|---|---|---|---|
+| 1 | Romanian deadlift (barbell or dumbbell) | 3 × 8 | straight, 2 min |
+| 2 | Wide-grip lat pulldown | 3 × 10 | **superset** |
+| 3 | Seated shoulder press | 3 × 8–10 | ↑ pull against press |
+| 4 | Leg press | 3 × 10 | **superset** |
+| 5 | Cable crunch | 3 × 12 | ↑ legs against abs |
+| 6 | Hammer curl | 2 × 12 | **superset** |
+| 7 | Neck flexion (lying face-up, chin to chest) | 2 × 15 | ↑ unrelated |
+| 8 | Farmer's carry (heavy dumbbells) | 3 × 40 m | straight — it is already a full-body carry |
 
 ### Day C — Posterior chain + arms
 
-| # | Exercise | Sets × Reps |
+| # | Exercise | Sets × Reps | |
+|---|---|---|---|
+| 1 | Back extension / 45° hyperextension | 3 × 12 | **superset** |
+| 2 | Hammer Strength incline press | 3 × 8 | ↑ lower back against chest |
+| 3 | Single-arm lat row | 3 × 10 | **superset** |
+| 4 | Bulgarian split squat (or walking lunge) | 3 × 10 per leg | ↑ upper pull against single leg |
+| 5 | Rear delt flye | 3 × 12 | **superset** |
+| 6 | Cable Pallof press | 3 × 12 per side | ↑ rear delts against anti-rotation |
+| 7 | Cable pushdown | 2 × 12 | **superset** |
+| 8 | Reverse barbell curl | 2 × 15 | ↑ triceps against biceps |
+| 9 | Neck side flexion | 2 × 12 per side | straight, quick |
+
+Day C is the longest of the three. If you are short on time, the honest cut is the neck side flexion — it is the one thing here that appears on all three days.
+
+### What this costs in time
+
+Roughly, counting 5 min of warm-up:
+
+| | Before | With supersets |
 |---|---|---|
-| 1 | Back extension / 45° hyperextension | 3 × 12 |
-| 2 | Hammer Strength incline press | 3 × 8 |
-| 3 | Single-arm lat row | 3 × 10 |
-| 4 | Bulgarian split squat (or walking lunge) | 3 × 10 per leg |
-| 5 | Rear delt flye | 3 × 12 |
-| 6 | Cable pushdown | 2 × 12 |
-| 7 | Neck side flexion | 2 × 12 per side |
-| 8 | Reverse barbell curl | 2 × 15 |
-| 9 | Cable Pallof press | 3 × 12 per side |
+| Day A | ~48 min | **~33 min** |
+| Day B | ~48 min | **~34 min** |
+| Day C | ~54 min | **~38 min** |
+
+The saving is entirely rest time you were spending standing still — every working set in the plan is still there, at the same sets and reps. Nothing was dropped to make the number smaller.
 
 **Core coverage across the week:** lying leg raise (Day A), cable crunch (Day B), Pallof press (Day C) — nine direct sets across flexion, hip flexion and anti-rotation. Squats, RDLs, split squats, farmer's carries and back extensions load the trunk on top of that.
 
