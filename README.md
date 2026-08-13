@@ -39,8 +39,10 @@ there is no account. Two things follow from that:
 - The Home Screen app and the browser tab share one store on Android, but on
   iOS an installed app gets its own. Pick one and stay in it.
 - Clearing site data, or iOS reclaiming storage from an app you have not opened
-  in weeks, wipes the log. **Plan → Copy all data as backup** puts the whole
-  JSON on the clipboard; paste it somewhere safe now and then.
+  in weeks, wipes the log. **Plan → Save a backup** writes one `.json` file and
+  opens the share sheet, so it can go straight into Files or Notes.
+  **Plan → Restore from a backup** reads one back, from a file or pasted text,
+  and asks before replacing anything.
 
 ## What's here
 
