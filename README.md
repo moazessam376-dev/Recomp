@@ -8,6 +8,18 @@ A single-page app with no build step and no backend. Four tabs — Train, Food,
 Body, Plan — backed by `localStorage` and a service worker, so it opens
 instantly and keeps working with no signal in the gym.
 
+## One-time setup
+
+Pages has to be switched on once, by hand, before the first deploy can publish:
+
+**Settings → Pages → Build and deployment → Source → GitHub Actions.**
+
+The workflow cannot do this for you. Creating a Pages site needs
+`administration` scope and the Actions `GITHUB_TOKEN` is never granted it, so
+it fails with *Resource not accessible by integration*. Once the source is set,
+re-run the latest **Deploy to GitHub Pages** run and every push after that
+deploys on its own.
+
 ## Install it on your phone
 
 Open the link above, then:

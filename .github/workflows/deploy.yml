@@ -24,11 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # enablement:true turns Pages on the first time this runs, so the site
-      # does not need to be switched on by hand in Settings first.
+      # Pages itself has to be switched on once by an account admin, under
+      # Settings -> Pages -> Source -> GitHub Actions. The workflow token
+      # cannot do it: creating a Pages site needs administration scope, which
+      # GITHUB_TOKEN is never granted, so enablement:true here just fails with
+      # "Resource not accessible by integration". Deploying, below, is fine.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
