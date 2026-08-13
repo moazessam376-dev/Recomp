@@ -371,8 +371,10 @@ const store={
   },
   async save(d){
     const s=JSON.stringify(d);
-    try{ if(window.storage&&window.storage.set){await window.storage.set(KEY,s);return} }catch(e){}
-    try{localStorage.setItem(KEY,s)}catch(e){}
+    try{ if(window.storage&&window.storage.set){await window.storage.set(KEY,s);return true} }catch(e){}
+    /* Report the failure. A tool whose whole point is the log must not lose a
+       set quietly because storage is full or blocked in private browsing. */
+    try{localStorage.setItem(KEY,s);return true}catch(e){return false}
   }
 };
 
@@ -410,31 +412,75 @@ let selDay='A';
 
 function iso(d){return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),1500)}
-const persist=()=>store.save(S);
+const persist=()=>store.save(S).then(ok=>{if(!ok)toast('NOT SAVED — storage blocked')});
+
+/* A session is keyed by date AND day. Keying by date alone gave one calendar
+   date a single mutable `day` label, so tapping B while A was already logged
+   relabelled A's sets as B's and lost the session. */
+function wkey(date,day){return date+'|'+day}
+let didMigrate=false;
+function migrate(d){
+  if(!d||!d.workouts)return d;
+  const out={};
+  for(const k in d.workouts){
+    const v=d.workouts[k]||{};
+    if(k.indexOf('|')>-1){out[k]=v;continue}          // already migrated
+    out[wkey(k,v.day||'A')]={day:v.day||'A',date:k,e:v.e||{}};
+    didMigrate=true;
+  }
+  d.workouts=out;
+  return d;
+}
+function sessions(){
+  return Object.keys(S.workouts)
+    .map(k=>Object.assign({key:k,date:k.slice(0,10)},S.workouts[k]))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+}
+function logged(w){return Object.keys(w.e||{}).some(i=>(w.e[i]||[]).some(x=>x&&x.w))}
 
 /* ============ boot ============ */
 (async function(){
   const d=await store.load();
-  if(d)S=Object.assign({workouts:{},food:{},body:{}},d);
+  if(d)S=Object.assign({workouts:{},food:{},body:{}},migrate(d));
+  if(didMigrate)persist();     // write the new shape back once, not every load
+  renderHead();
+  selDay=dayForToday()||nextDay();
+  renderStreak();renderDays();renderEx();renderFood();renderBody();
+})();
+
+function renderHead(){
   const dt=new Date();
   document.getElementById('datestr').textContent=
     dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
   const h=dt.getHours();
   document.getElementById('greet').textContent=h<11?'Morning, Moaaz':h<18?'Afternoon, Moaaz':'Evening, Moaaz';
-  selDay=S.workouts[today]?S.workouts[today].day:nextDay();
-  renderStreak();renderDays();renderEx();renderFood();renderBody();
-})();
-
+}
+function dayForToday(){
+  const t=sessions().filter(w=>w.date===today);
+  return t.length?t[t.length-1].day:null;
+}
 function nextDay(){
-  const ds=Object.keys(S.workouts).sort();
-  if(!ds.length)return 'A';
-  const l=S.workouts[ds[ds.length-1]].day;
-  return {A:'B',B:'C',C:'A'}[l];
+  const ss=sessions();
+  if(!ss.length)return 'A';
+  return {A:'B',B:'C',C:'A'}[ss[ss.length-1].day];
 }
 function renderStreak(){
-  const n=Object.keys(S.workouts).length;
+  const n=sessions().filter(logged).length;
   document.getElementById('streak').textContent=n?n+' SESSIONS':'SESSION 1';
 }
+
+/* `today` is read once at load, but a phone keeps the app alive for days. A
+   set logged after midnight must not land on yesterday's date. */
+function checkRollover(){
+  const now=iso(new Date());
+  if(now===today)return;
+  today=now;
+  renderHead();
+  selDay=dayForToday()||nextDay();
+  renderStreak();renderDays();renderEx();renderFood();renderBody();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRollover()});
+window.addEventListener('focus',checkRollover);
 
 /* ============ train ============ */
 function renderDays(){
@@ -443,24 +489,33 @@ function renderDays(){
       <span class="l">${k}</span><span class="n">${PROGRAM[k].name}</span></button>`).join('');
   document.querySelectorAll('.day').forEach(b=>b.onclick=()=>{selDay=b.dataset.d;renderDays();renderEx()});
 }
-function wo(){ if(!S.workouts[today])S.workouts[today]={day:selDay,e:{}};
-  if(S.workouts[today].day!==selDay){S.workouts[today].day=selDay}
-  return S.workouts[today]; }
+function wo(day){
+  const d=day||selDay,k=wkey(today,d);
+  if(!S.workouts[k])S.workouts[k]={day:d,date:today,e:{}};
+  return S.workouts[k];
+}
 function lastFor(day,i){
-  const ds=Object.keys(S.workouts).filter(d=>d!==today&&S.workouts[d].day===day).sort();
-  for(let j=ds.length-1;j>=0;j--){const s=S.workouts[ds[j]].e[i];if(s&&s.some(x=>x&&x.w))return s}
+  const prev=sessions().filter(w=>w.day===day&&w.key!==wkey(today,day));
+  for(let j=prev.length-1;j>=0;j--){
+    const s=(prev[j].e||{})[i];
+    if(s&&s.some(x=>x&&x.w))return s;
+  }
   return null;
 }
 function renderEx(){
-  const cur=S.workouts[today]&&S.workouts[today].day===selDay?S.workouts[today].e:{};
-  document.getElementById('exlist').innerHTML=PROGRAM[selDay].ex.map(([n,pr,sets],i)=>{
-    const logged=(cur[i]||[]).filter(x=>x&&x.w).length;
-    const L=lastFor(selDay,i);
+  /* Pinned for the lifetime of this render. Re-rendering drops a focused
+     input, which fires its change event afterwards - by then selDay may be
+     the day just tapped, and the set would be written to the wrong session. */
+  const day=selDay;
+  const cur=(S.workouts[wkey(today,day)]||{}).e||{};
+  document.getElementById('exlist').innerHTML=PROGRAM[day].ex.map(([n,pr,sets],i)=>{
+    const done=(cur[i]||[]).filter(x=>x&&x.w).length;
+    const L=lastFor(day,i);
     const lastTxt=L?'Last · '+L.filter(x=>x&&x.w).map(x=>x.w+'×'+x.r).join('   '):'No history yet — set your baseline';
     return `<div class="ex" data-i="${i}">
       <button class="ex-head"><span class="ex-idx num">${String(i+1).padStart(2,'0')}</span>
       <span class="ex-name">${n}<em>${pr}</em></span>
-      <span class="ex-state${logged===sets?' done':''}">${logged}/${sets}</span></button>
+      <span class="ex-state${done===sets?' done':''}">${done}/${sets}</span></button>
       <div class="sets"><div class="last">${lastTxt}</div>
       ${Array.from({length:sets},(_,s)=>{
         const v=(cur[i]||[])[s]||{};
@@ -473,29 +528,31 @@ function renderEx(){
 
   document.querySelectorAll('.ex-head').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
   document.querySelectorAll('.sets .inp').forEach(inp=>inp.onchange=e=>{
-    const{i,s,f}=e.target.dataset,W=wo();
+    const{i,s,f}=e.target.dataset,W=wo(day);
     W.e[i]=W.e[i]||[];W.e[i][s]=W.e[i][s]||{};
     W.e[i][s][f]=e.target.value.trim();
     e.target.classList.toggle('filled',!!e.target.value.trim());
     const st=e.target.closest('.ex').querySelector('.ex-state');
-    const done=W.e[i].filter(x=>x&&x.w).length,tot=PROGRAM[selDay].ex[i][2];
-    st.textContent=done+'/'+tot;st.classList.toggle('done',done===tot);
+    const n=W.e[i].filter(x=>x&&x.w).length,tot=PROGRAM[day].ex[i][2];
+    st.textContent=n+'/'+tot;st.classList.toggle('done',n===tot);
     persist();renderStreak();
   });
   document.querySelectorAll('.repeat').forEach(b=>b.onclick=()=>{
-    const i=b.dataset.r,L=lastFor(selDay,i);
+    const i=b.dataset.r,L=lastFor(day,i);
     if(!L){toast('Nothing to repeat');return}
-    const W=wo();W.e[i]=JSON.parse(JSON.stringify(L));persist();
+    const W=wo(day);W.e[i]=JSON.parse(JSON.stringify(L));persist();
     const open=document.querySelector('.ex[data-i="'+i+'"]').classList.contains('open');
     renderEx();if(open)document.querySelector('.ex[data-i="'+i+'"]').classList.add('open');
     toast('Filled from last session');
   });
 }
 document.getElementById('repeatAll').onclick=()=>{
-  const W=wo();let n=0;
-  PROGRAM[selDay].ex.forEach((_,i)=>{const L=lastFor(selDay,i);if(L){W.e[i]=JSON.parse(JSON.stringify(L));n++}});
-  if(!n){toast('No history for day '+selDay);return}
-  persist();renderEx();renderStreak();toast(n+' exercises filled');
+  const day=selDay,fills=[];
+  PROGRAM[day].ex.forEach((_,i)=>{const L=lastFor(day,i);if(L)fills.push([i,L])});
+  if(!fills.length){toast('No history for day '+day);return}
+  const W=wo(day);                       // only create the session once there
+  fills.forEach(([i,L])=>{W.e[i]=JSON.parse(JSON.stringify(L))});  // is data
+  persist();renderEx();renderStreak();toast(fills.length+' exercises filled');
 };
 
 /* ============ food ============ */
