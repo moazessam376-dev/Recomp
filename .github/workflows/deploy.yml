@@ -24,6 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The plan's rules (progression, macros, swaps, check-ins) are tested in
+      # Node. A red test stops the deploy before a broken plan reaches the phone.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
       # Pages itself has to be switched on once by an account admin, under
       # Settings -> Pages -> Source -> GitHub Actions. The workflow token
       # cannot do it: creating a Pages site needs administration scope, which

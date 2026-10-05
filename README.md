@@ -4,9 +4,20 @@ A tool to track my gym meals and log training.
 
 **Live:** https://moazessam376-dev.github.io/Recomp/
 
-A single-page app with no build step and no backend. Four tabs (Train, Food,
-Body, Plan) backed by `localStorage` and a service worker, so it opens
-instantly and keeps working with no signal in the gym.
+A small web app with no build step and no backend. Five tabs, backed by
+`localStorage` and a service worker, so it opens instantly and keeps working
+with no signal in the gym:
+
+- **Today:** next session, protein, calories and water rings, the next meal,
+  and the supplement checklist by time of day.
+- **Train:** Upper/Lower ×2 with set logging, double-progression targets, a rest
+  timer that starts on its own, and form photos with cues for every exercise.
+- **Food:** five planned meals you tick off, swaps that keep the protein or carbs
+  the same, and extras for anything off-plan.
+- **Body:** trend weight, waist, InBody scans, and a check-in that adjusts the
+  rice when the trend says so.
+- **Plan:** the numbers with the research behind them, the supplement editor,
+  and backup and restore.
 
 ## One-time setup
 
@@ -48,20 +59,37 @@ there is no account. Two things follow from that:
 
 | File | |
 |---|---|
-| `index.html` | the entire app: markup, styles and logic |
-| `sw.js` | service worker: offline shell and asset cache |
+| `index.html` | the shell: header, the five views, nav |
+| `css/app.css` | all styles and animations |
+| `js/data.js` | **the plan as data:** program, foods, meals, supplements, targets |
+| `js/logic.js` | pure rules: progression, ramp weeks, macros, swaps, trend, check-in, migration |
+| `js/state.js` | storage, and the one state object the views share |
+| `js/ui.js` | toast, bottom sheet, animated rings, bars and numbers |
+| `js/today.js` `train.js` `food.js` `body.js` `plan.js` | one module per tab |
+| `js/app.js` | boot, tabs, midnight rollover |
+| `img/ex/` | two form photos per exercise, from free-exercise-db (public domain) |
+| `tests/` | Node tests for `logic.js`: run `npm test` |
+| `sw.js` | service worker: offline cache for the app and the photos |
 | `manifest.webmanifest` | name, colours and icons for installation |
-| `PLAN.md` | the training and nutrition plan the app is built around |
-| `.github/workflows/deploy.yml` | publishes to Pages on every push to `main` |
+| `PLAN.md` | the plan in prose, with the research behind every number |
+| `.github/workflows/deploy.yml` | runs the tests, then publishes to Pages on every push to `main` |
 
 ## Changing it
 
-Edit `index.html` and push to `main`: the workflow redeploys. The page is
-fetched network-first, so an installed phone picks up the new version on its
-next launch; static assets stay cache-first, and bumping `CACHE` in `sw.js`
-forces those to refresh too.
+Edit, run `npm test`, and push to `main`: the workflow tests and redeploys. The
+page, scripts and styles are fetched network-first, so an installed phone picks
+up the new version on its next launch with all of them from the same deploy.
+Photos and icons stay cache-first; bump `CACHE` in `sw.js` when you add or
+replace any.
 
-The program, meals and targets are plain data near the top of the script in
-`index.html` (`PROGRAM`, `MEALS`, `KCAL`, `PROT`, `WAIST0`): that is the part
-to edit when the plan moves on. `PLAN.md` is the prose version and does not
-drive the app.
+To try it locally, serve the folder (ES modules do not load from `file://`):
+
+```
+python3 -m http.server 8642
+```
+
+The program, meals, foods, supplements and targets live in `js/data.js`. That
+is the file to edit when the plan moves on. `PLAN.md` is the prose version and
+does not drive the app. Logs from the old 3-day app load as they are: lifts
+shared with the new split (Smith squat, RDL, leg press and others) keep their
+history.
